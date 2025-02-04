@@ -6,7 +6,8 @@
 //! 3. Subscriber updates the count and triggers re-render
 
 use gpui::{
-    div, prelude::*, rgb, App, AppContext, EventEmitter, MouseButton, ViewContext, WindowOptions,
+    div, prelude::*, rgb, App, Application, Context, EventEmitter, MouseButton, Window,
+    WindowOptions,
 };
 
 struct CounterView {
@@ -14,7 +15,7 @@ struct CounterView {
 }
 
 impl Render for CounterView {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .bg(rgb(0xF8FAFC))
             .size_full()
@@ -45,7 +46,7 @@ impl Render for CounterView {
                     .child("Increment +2")
                     .on_mouse_up(
                         MouseButton::Left,
-                        cx.listener(|_this, _event, cx| {
+                        cx.listener(|_this, _event, _window, cx| {
                             cx.emit(Change { increment: 2 });
                         }),
                     ),
@@ -61,13 +62,13 @@ struct Change {
 }
 
 fn main() {
-    App::new().run(|cx: &mut AppContext| {
+    Application::new().run(|cx: &mut App| {
         cx.open_window(
             WindowOptions {
                 ..Default::default()
             },
-            |cx| {
-                let view = cx.new_view(|_cx| CounterView { count: 0 });
+            |_, cx| {
+                let view = cx.new(|_cx| CounterView { count: 0 });
 
                 // Subscribes to events emitted by CounterView
                 cx.subscribe(&view, |view, event, cx| {

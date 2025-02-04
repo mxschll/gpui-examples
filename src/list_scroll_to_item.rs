@@ -1,6 +1,6 @@
 use gpui::{
-    div, prelude::*, px, rgb, size, uniform_list, App, AppContext, Bounds, ScrollStrategy, Timer,
-    UniformListScrollHandle, View, ViewContext, WindowBounds, WindowOptions,
+    div, prelude::*, px, rgb, size, uniform_list, App, AppContext, Application, Bounds, Context,
+    Entity, ScrollStrategy, Timer, UniformListScrollHandle, Window, WindowBounds, WindowOptions,
 };
 use std::time::Duration;
 
@@ -15,8 +15,8 @@ struct ListView {
 }
 
 impl ListView {
-    fn new(cx: &mut ViewContext<ContainerView>) -> View<Self> {
-        cx.new_view(|cx: &mut ViewContext<Self>| {
+    fn new(cx: &mut Context<ContainerView>) -> Entity<Self> {
+        cx.new(|cx: &mut Context<Self>| {
             Self::spanw_auto_scroll_task(cx);
             Self {
                 list_scroll_handle: UniformListScrollHandle::new(),
@@ -26,12 +26,12 @@ impl ListView {
     }
 
     /// Spawns an async task that automatically scrolls the list
-    fn spanw_auto_scroll_task(cx: &mut ViewContext<Self>) {
+    fn spanw_auto_scroll_task(cx: &mut Context<Self>) {
         cx.spawn(|this, mut cx| async move {
             loop {
                 Timer::after(UPDATE_INTERVAL).await;
                 if let Some(view) = this.upgrade() {
-                    cx.update_view(&view, |view, cx| {
+                    cx.update_entity(&view, |view, cx| {
                         view.selected_index = (view.selected_index + 1) % LIST_ITEMS;
                         view.list_scroll_handle
                             .scroll_to_item(view.selected_index, ScrollStrategy::Top);
@@ -47,11 +47,11 @@ impl ListView {
 }
 
 struct ContainerView {
-    scroll_list: View<ListView>,
+    scroll_list: Entity<ListView>,
 }
 
 impl Render for ContainerView {
-    fn render(&mut self, _cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .bg(rgb(0xffffff))
             .size_full()
@@ -62,13 +62,13 @@ impl Render for ContainerView {
 }
 
 impl Render for ListView {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div().size_full().bg(rgb(0xffffff)).child(
             uniform_list(
-                cx.view().clone(),
+                cx.entity().clone(),
                 "entries",
                 LIST_ITEMS,
-                |this, range, _cx| {
+                |this, range, _, _cx| {
                     let mut items = Vec::new();
                     for ix in range {
                         let item = ix + 1;
@@ -92,15 +92,15 @@ impl Render for ListView {
 }
 
 fn main() {
-    App::new().run(|cx: &mut AppContext| {
+    Application::new().run(|cx: &mut App| {
         let bounds = Bounds::centered(None, size(px(WINDOW_WIDTH), px(WINDOW_HEIGHT)), cx);
         cx.open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 ..Default::default()
             },
-            |cx| {
-                cx.new_view(|cx| {
+            |_, cx| {
+                cx.new(|cx| {
                     let scroll_list = ListView::new(cx);
                     ContainerView { scroll_list }
                 })

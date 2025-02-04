@@ -3,8 +3,8 @@
 //! and a button that switches between them.
 
 use gpui::{
-    div, prelude::*, px, rgb, size, AnyView, App, AppContext, Bounds, MouseButton, ViewContext,
-    WindowBounds, WindowOptions,
+    div, prelude::*, px, rgb, size, AnyView, App, AppContext, Application, Bounds, Context,
+    MouseButton, Window, WindowBounds, WindowOptions,
 };
 
 const WINDOW_WIDTH: f32 = 500.0;
@@ -19,13 +19,13 @@ mod boxes {
     pub struct ColorBox2;
 
     impl Render for ColorBox1 {
-        fn render(&mut self, _cx: &mut ViewContext<Self>) -> impl IntoElement {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
             color_box(rgb(0x50A050), "ColorBox1")
         }
     }
 
     impl Render for ColorBox2 {
-        fn render(&mut self, _cx: &mut ViewContext<Self>) -> impl IntoElement {
+        fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
             color_box(rgb(0xA05050), "ColorBox2")
         }
     }
@@ -55,7 +55,7 @@ struct Container {
 }
 
 impl Container {
-    fn switch_view(&mut self, _: &mut ViewContext<Self>) {
+    fn switch_view(&mut self, _: &mut Context<Self>) {
         self.active_view = match self.active_view {
             ActiveView::First => ActiveView::Second,
             ActiveView::Second => ActiveView::First,
@@ -64,13 +64,13 @@ impl Container {
 }
 
 impl Render for Container {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex()
             .flex_col()
             .child(match self.active_view {
-                ActiveView::First => AnyView::from(cx.new_view(|_cx| boxes::ColorBox1)),
-                ActiveView::Second => AnyView::from(cx.new_view(|_cx| boxes::ColorBox2)),
+                ActiveView::First => AnyView::from(cx.new(|_cx| boxes::ColorBox1)),
+                ActiveView::Second => AnyView::from(cx.new(|_cx| boxes::ColorBox2)),
             })
             .child(
                 div()
@@ -84,7 +84,7 @@ impl Render for Container {
                     .text_color(rgb(0xffffff))
                     .on_mouse_up(
                         MouseButton::Left,
-                        cx.listener(|this, _event, cx| {
+                        cx.listener(|this, _event, _, cx| {
                             this.switch_view(cx);
                             cx.notify(); // Indicate that this view has changed
                         }),
@@ -95,15 +95,15 @@ impl Render for Container {
 }
 
 fn main() {
-    App::new().run(|cx: &mut AppContext| {
+    Application::new().run(|cx: &mut App| {
         let bounds = Bounds::centered(None, size(px(WINDOW_WIDTH), px(WINDOW_HEIGHT)), cx);
         cx.open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 ..Default::default()
             },
-            |cx| {
-                cx.new_view(|_cx| Container {
+            |_, cx| {
+                cx.new(|_cx| Container {
                     active_view: ActiveView::default(),
                 })
             },

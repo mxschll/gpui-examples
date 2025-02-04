@@ -1,12 +1,12 @@
 use gpui::{
-    div, prelude::*, px, rgb, size, App, AppContext, Bounds, ViewContext, WindowBounds,
+    div, prelude::*, px, rgb, size, App, Application, Bounds, Context, Window, WindowBounds,
     WindowOptions,
 };
 
 struct View;
 
 impl Render for View {
-    fn render(&mut self, _cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex()
             .flex_col()
@@ -22,14 +22,14 @@ impl Render for View {
 }
 
 fn main() {
-    App::new().run(|cx: &mut AppContext| {
+    Application::new().run(|cx: &mut App| {
         let bounds = Bounds::centered(None, size(px(500.), px(500.0)), cx);
         cx.open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 ..Default::default()
             },
-            |cx| cx.new_view(|_cx| View {}),
+            |_, cx| cx.new(|_cx| View {}),
         )
         .unwrap();
     });

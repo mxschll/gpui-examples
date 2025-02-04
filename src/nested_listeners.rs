@@ -1,12 +1,12 @@
 use gpui::{
-    div, px, rgba, size, App, AppContext, Bounds, InteractiveElement, IntoElement, MouseButton,
-    ParentElement, Render, Styled, ViewContext, VisualContext, WindowBounds, WindowOptions,
+    div, px, rgba, size, App, AppContext, Application, Bounds, Context, InteractiveElement,
+    IntoElement, MouseButton, ParentElement, Render, Styled, Window, WindowBounds, WindowOptions,
 };
 
 struct ParentView {}
 
 impl Render for ParentView {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .id("parent")
             .bg(rgba(0x00ff00ff))
@@ -18,18 +18,18 @@ impl Render for ParentView {
             .child(div().pb_8().pt_8().flex().items_center().child("Parent"))
             .on_mouse_up(
                 MouseButton::Left,
-                cx.listener(|_this, _event, _cx| {
+                cx.listener(|_this, _event, _, _cx| {
                     println!("Parent Clicked");
                 }),
             )
-            .child(cx.new_view(|_cx| ChildView {}))
+            .child(cx.new(|_cx| ChildView {}))
     }
 }
 
 struct ChildView {}
 
 impl Render for ChildView {
-    fn render(&mut self, _cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .id("child")
             .bg(rgba(0xff0000ff))
@@ -49,7 +49,7 @@ impl Render for ChildView {
             //         println!("Child Clicked");
             //     }),
             // ),
-            .on_mouse_up(MouseButton::Left, move |_event, cx| {
+            .on_mouse_up(MouseButton::Left, move |_event, _, cx| {
                 cx.stop_propagation();
                 println!("Child Clicked");
             })
@@ -57,7 +57,7 @@ impl Render for ChildView {
 }
 
 fn main() {
-    App::new().run(|cx: &mut AppContext| {
+    Application::new().run(|cx: &mut App| {
         let window = cx
             .open_window(
                 WindowOptions {
@@ -68,12 +68,12 @@ fn main() {
                     ))),
                     ..Default::default()
                 },
-                |cx| cx.new_view(|_cx| ParentView {}),
+                |_, cx| cx.new(|_cx| ParentView {}),
             )
             .unwrap();
 
         window
-            .update(cx, |_view, cx| {
+            .update(cx, |_view, _, cx| {
                 cx.activate(true);
             })
             .unwrap();

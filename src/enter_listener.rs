@@ -4,8 +4,8 @@
 //! - Updates state and re-renders on user interaction
 
 use gpui::{
-    actions, div, prelude::*, px, rgb, size, App, AppContext, Bounds, FocusHandle, FocusableView,
-    KeyBinding, ViewContext, WindowBounds, WindowOptions,
+    actions, div, prelude::*, px, rgb, size, App, Application, Bounds, Context, FocusHandle,
+    Focusable, KeyBinding, Window, WindowBounds, WindowOptions,
 };
 
 actions!(text_input, [Enter]);
@@ -16,21 +16,21 @@ struct SimpleView {
 }
 
 impl SimpleView {
-    fn handle_enter(&mut self, _: &Enter, cx: &mut ViewContext<Self>) {
+    fn handle_enter(&mut self, _: &Enter, _window: &mut Window, cx: &mut Context<Self>) {
         self.counter += 1;
         cx.notify();
     }
 }
 
 // FocusableView is needed for .on_action to work
-impl FocusableView for SimpleView {
-    fn focus_handle(&self, _: &AppContext) -> FocusHandle {
+impl Focusable for SimpleView {
+    fn focus_handle(&self, _: &App) -> FocusHandle {
         self.focus_handle.clone()
     }
 }
 
 impl Render for SimpleView {
-    fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .bg(rgb(0xaaaaaa))
             .track_focus(&self.focus_handle(cx)) // Required for .on_action to work
@@ -45,7 +45,7 @@ impl Render for SimpleView {
 }
 
 fn main() {
-    App::new().run(|cx: &mut AppContext| {
+    Application::new().run(|cx: &mut App| {
         // Bind the enter key
         cx.bind_keys([KeyBinding::new("enter", Enter, None)]);
 
@@ -59,8 +59,8 @@ fn main() {
                     ))),
                     ..Default::default()
                 },
-                |cx| {
-                    cx.new_view(|cx| SimpleView {
+                |_, cx| {
+                    cx.new(|cx| SimpleView {
                         counter: 0,
                         focus_handle: cx.focus_handle(),
                     })
@@ -70,9 +70,9 @@ fn main() {
 
         // Focus the window so it can receive key events
         window
-            .update(cx, |_view, cx| {
+            .update(cx, |_view, window, cx| {
                 cx.activate(true);
-                cx.focus_self()
+                cx.focus_self(window)
             })
             .unwrap();
     });
